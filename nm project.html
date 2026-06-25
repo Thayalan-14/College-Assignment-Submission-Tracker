@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Assignment Submission Tracker</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f2f5f9;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    color:#003366;
+    margin-bottom:20px;
+}
+
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    text-align:center;
+    border-radius:10px;
+    box-shadow:0 3px 8px rgba(0,0,0,.2);
+}
+
+.card h2{
+    font-size:30px;
+    margin-bottom:10px;
+}
+
+.green{background:#2ecc71;color:white;}
+.orange{background:#f39c12;color:white;}
+.red{background:#e74c3c;color:white;}
+
+.form{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
+    margin-bottom:20px;
+}
+
+input,select,button{
+    padding:12px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button{
+    background:#003366;
+    color:white;
+    cursor:pointer;
+    border:none;
+}
+
+button:hover{
+    background:#0055aa;
+}
+
+.filter{
+    margin-bottom:15px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th{
+    background:#003366;
+    color:white;
+    padding:12px;
+}
+
+td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:center;
+}
+
+.delete{
+    background:red;
+    padding:8px 12px;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.delete:hover{
+    background:darkred;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h1>College Assignment Submission Tracker</h1>
+
+<div class="dashboard">
+
+<div class="card">
+<h2 id="total">0</h2>
+<p>Total Assignments</p>
+</div>
+
+<div class="card green">
+<h2 id="submitted">0</h2>
+<p>Submitted</p>
+</div>
+
+<div class="card orange">
+<h2 id="pending">0</h2>
+<p>Pending</p>
+</div>
+
+<div class="card red">
+<h2 id="late">0</h2>
+<p>Late</p>
+</div>
+
+</div>
+
+<div class="form">
+
+<input type="text" id="title" placeholder="Assignment Title">
+
+<input type="text" id="subject" placeholder="Subject">
+
+<input type="date" id="dueDate">
+
+<select id="status">
+<option>Pending</option>
+<option>Submitted</option>
+<option>Late</option>
+</select>
+
+<button onclick="addAssignment()">Add Assignment</button>
+
+</div>
+
+<div class="filter">
+<label><b>Filter by Subject :</b></label>
+
+<select id="filterSubject" onchange="displayAssignments()">
+<option value="All">All Subjects</option>
+</select>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Title</th>
+<th>Subject</th>
+<th>Due Date</th>
+<th>Status</th>
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody id="assignmentTable">
+
+</tbody>
+
+</table>
+
+</div>
+
+<script>
+
+let assignments = JSON.parse(localStorage.getItem("assignments")) || [];
+
+displayAssignments();
+
+function addAssignment(){
+
+let title=document.getElementById("title").value.trim();
+let subject=document.getElementById("subject").value.trim();
+let dueDate=document.getElementById("dueDate").value;
+let status=document.getElementById("status").value;
+
+if(title==""||subject==""||dueDate==""){
+alert("Please fill all fields.");
+return;
+}
+
+assignments.push({
+title,
+subject,
+dueDate,
+status
+});
+
+saveData();
+
+document.getElementById("title").value="";
+document.getElementById("subject").value="";
+document.getElementById("dueDate").value="";
+document.getElementById("status").value="Pending";
+
+displayAssignments();
+
+}
+
+function displayAssignments(){
+
+let table=document.getElementById("assignmentTable");
+table.innerHTML="";
+
+let filter=document.getElementById("filterSubject").value;
+
+let subjects=["All"];
+
+assignments.forEach((item,index)=>{
+
+if(!subjects.includes(item.subject))
+subjects.push(item.subject);
+
+if(filter=="All"||filter==item.subject){
+
+table.innerHTML+=`
+<tr>
+<td>${item.title}</td>
+<td>${item.subject}</td>
+<td>${item.dueDate}</td>
+
+<td>
+<select onchange="changeStatus(${index},this.value)">
+<option ${item.status=="Pending"?"selected":""}>Pending</option>
+<option ${item.status=="Submitted"?"selected":""}>Submitted</option>
+<option ${item.status=="Late"?"selected":""}>Late</option>
+</select>
+</td>
+
+<td>
+<button class="delete" onclick="deleteAssignment(${index})">Delete</button>
+</td>
+
+</tr>
+`;
+
+}
+
+});
+
+let filterBox=document.getElementById("filterSubject");
+
+filterBox.innerHTML="";
+
+subjects.forEach(subject=>{
+filterBox.innerHTML+=`<option value="${subject}">${subject}</option>`;
+});
+
+filterBox.value=filter;
+
+updateDashboard();
+
+}
+
+function changeStatus(index,status){
+
+assignments[index].status=status;
+
+saveData();
+
+displayAssignments();
+
+}
+
+function deleteAssignment(index){
+
+if(confirm("Delete this assignment?")){
+
+assignments.splice(index,1);
+
+saveData();
+
+displayAssignments();
+
+}
+
+}
+
+function updateDashboard(){
+
+document.getElementById("total").innerText=assignments.length;
+
+document.getElementById("submitted").innerText=
+assignments.filter(a=>a.status=="Submitted").length;
+
+document.getElementById("pending").innerText=
+assignments.filter(a=>a.status=="Pending").length;
+
+document.getElementById("late").innerText=
+assignments.filter(a=>a.status=="Late").length;
+
+}
+
+function saveData(){
+
+localStorage.setItem("assignments",JSON.stringify(assignments));
+
+}
+
+</script>
+
+</body>
+</html>
